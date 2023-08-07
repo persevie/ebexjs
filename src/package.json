@@ -1,0 +1,29 @@
+{
+    "name": "@persevie/ebexjs",
+    "version": "1.0.0",
+    "description": "Event Bus Executor for JavaScript applications",
+    "main": "ebexjs.js",
+    "module": "ebexjs.mjs",
+    "typings": "ebexjs.d.ts",
+    "license": "MIT",
+    "repository": "https://github.com/persevie/ebexjs",
+    "bugs": "https://github.com/persevie/ebexjs/issues",
+    "publishConfig": {
+        "access": "public"
+    },
+    "files": [
+        "ebexjs.js",
+        "ebexjs.mjs",
+        "ebexjs.d.ts",
+        "ebexjs.js.map",
+        "ebexjs.mjs.map"
+    ],
+    "keywords": [
+        "event bus",
+        "event driven",
+        "message broker",
+        "queue",
+        "priority"
+    ],
+    "author": "Dmitry Shatokhin <dmtrshatokhin@gmail.com> (https://github.com/dmtrshat)"
+}
