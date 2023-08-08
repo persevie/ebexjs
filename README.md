@@ -2,6 +2,8 @@
 <img height="60" alt="Statemanjs logo" src="./assets/ebexjs.png">
 </p>
 
+[![codecov](https://codecov.io/gh/persevie/ebexjs/branch/main/graph/badge.svg?token=XI61QMHGQ2)](https://codecov.io/gh/persevie/ebexjs)
+
 ```ts
 // Create an instance of EBEXJS
 const ebexjs = new EBEXJS();
