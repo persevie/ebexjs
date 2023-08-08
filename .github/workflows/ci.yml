@@ -45,7 +45,8 @@ jobs:
       - name: Upload coverage reports to Codecov - ebexjs
         uses: codecov/codecov-action@v3
         with:
-          files: coverage/lcov.info
+          files: ./code-coverage/coverage/lcov.info
           flags: ebexjs
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
