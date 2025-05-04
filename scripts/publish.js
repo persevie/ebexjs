@@ -23,7 +23,7 @@ if (!directoryExists(dir)) {
 
 try {
     console.log(`Set new version to ${moduleName}...`);
-    execSync(`npm --prefix src/${moduleName} version ${releaseType}`, {
+    execSync(`npm --prefix src/ version ${releaseType}`, {
         stdio: "inherit",
     });
 
