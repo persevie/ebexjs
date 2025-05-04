@@ -13,7 +13,7 @@ import { EBEXJSQueue } from "./ebexjsQueue";
 
 class EBEXJSBase {
     isProcessing = false;
-    handlers = new Map<string, EBEXJSEventHandler<GenericRecord>>();
+    handlers = new Map<string, EBEXJSEventHandler<GenericRecord>[]>();
     queue = new EBEXJSQueue();
     globalMiddlewares: EBEXJSMiddleware<GenericRecord> = {};
 
@@ -39,13 +39,12 @@ class EBEXJSBase {
                 needAwait: handler.needAwait,
                 priority: handler.priority,
             };
-
-        this.executeStageCallback(
+        await this.executeStageCallback(
             handler.middleware,
             stage,
             middlewareCallbackParams,
         );
-        this.executeStageCallback(
+        await this.executeStageCallback(
             this.globalMiddlewares,
             stage,
             middlewareCallbackParams,
@@ -78,28 +77,29 @@ class EBEXJSBase {
      */
     async processQueue(): Promise<void> {
         this.isProcessing = true;
-
         try {
             while (this.queue.length > 0) {
                 const item = this.queue.pop();
-
                 if (item === undefined) {
                     continue;
                 }
-
-                const handler = this.handlers.get(item.event);
-
-                if (handler === undefined) {
+                const handlers = this.handlers.get(item.event);
+                if (!handlers || handlers.length === 0) {
                     continue;
                 }
 
+                const handler = handlers.find(
+                    (h) => h.callback === item.callback,
+                );
+                if (!handler) {
+                    continue;
+                }
                 await this.runMiddleware(
                     handler,
                     item.event,
                     item.data as GenericRecord,
                     "processing",
                 );
-
                 try {
                     item.needAwait
                         ? await item.callback(
@@ -109,7 +109,6 @@ class EBEXJSBase {
                 } catch (error) {
                     console.error(`Error during event processing: ${error}`);
                 }
-
                 await this.runMiddleware(
                     handler,
                     item.event,
@@ -144,23 +143,21 @@ export class EBEXJS implements EBEXJSApi {
      * @param registerParams - Parameters used to register an event listener.
      */
     on<T extends object>(registerParams: EBEXJSRegisterParams<T>): void {
-        if (!this.#baseApi.handlers.has(registerParams.event)) {
-            this.#baseApi.handlers.set(registerParams.event, {
-                callback: async (
-                    data: EBEXJSCallbackParams<GenericRecord>,
-                ): Promise<void> => {
-                    return await Promise.resolve(
-                        registerParams.callback(
-                            data as EBEXJSCallbackParams<T>,
-                        ),
-                    );
-                },
-                priority: registerParams.priority,
-                middleware:
-                    registerParams.middleware as EBEXJSMiddleware<GenericRecord>,
-                needAwait: registerParams.needAwait,
-            });
-        }
+        const arr = this.#baseApi.handlers.get(registerParams.event) ?? [];
+        arr.push({
+            callback: async (
+                data: EBEXJSCallbackParams<GenericRecord>,
+            ): Promise<void> => {
+                return await Promise.resolve(
+                    registerParams.callback(data as EBEXJSCallbackParams<T>),
+                );
+            },
+            priority: registerParams.priority,
+            middleware:
+                registerParams.middleware as EBEXJSMiddleware<GenericRecord>,
+            needAwait: registerParams.needAwait,
+        });
+        this.#baseApi.handlers.set(registerParams.event, arr);
     }
 
     /**
@@ -180,29 +177,30 @@ export class EBEXJS implements EBEXJSApi {
         event: string,
         data: EBEXJSCallbackParams<T>,
     ): Promise<void> {
-        const handler = this.#baseApi.handlers.get(event);
-
-        if (handler === undefined) {
+        const handlers = this.#baseApi.handlers.get(event);
+        if (!handlers || handlers.length === 0) {
             return;
         }
 
-        await this.#baseApi.runMiddleware(
-            handler,
-            event,
-            data as GenericRecord,
-            "before",
-        );
+        for (const handler of handlers) {
+            await this.#baseApi.runMiddleware(
+                handler,
+                event,
+                data as GenericRecord,
+                "before",
+            );
+        }
 
-        const queueItem: EBEXJSEventQueueItem<T> = {
-            needAwait: handler.needAwait,
-            event,
-            data,
-            callback: handler.callback,
-            priority: handler.priority,
-        };
-
-        this.#baseApi.queue.push(queueItem);
-
+        for (const handler of handlers) {
+            const queueItem: EBEXJSEventQueueItem<T> = {
+                needAwait: handler.needAwait,
+                event,
+                data,
+                callback: handler.callback,
+                priority: handler.priority,
+            };
+            this.#baseApi.queue.push(queueItem);
+        }
         if (!this.#baseApi.isProcessing) {
             try {
                 await this.#baseApi.processQueue();
@@ -218,14 +216,35 @@ export class EBEXJS implements EBEXJSApi {
      */
     once<T extends object>(registerParams: EBEXJSRegisterParams<T>): void {
         const originalCallback = registerParams.callback;
-        registerParams.callback = async (
+        const wrapper = async (
             data: EBEXJSCallbackParams<T>,
         ): Promise<void> => {
             await originalCallback(data);
-            this.off(registerParams.event);
+
+            const arr = this.#baseApi.handlers.get(registerParams.event);
+            if (arr) {
+                this.#baseApi.handlers.set(
+                    registerParams.event,
+                    arr.filter((h) => h.callback !== wrapperImpl),
+                );
+            }
         };
 
-        this.on(registerParams);
+        const wrapperImpl = async (
+            data: EBEXJSCallbackParams<GenericRecord>,
+        ): Promise<void> => {
+            await wrapper(data as EBEXJSCallbackParams<T>);
+        };
+
+        const arr = this.#baseApi.handlers.get(registerParams.event) ?? [];
+        arr.push({
+            callback: wrapperImpl,
+            priority: registerParams.priority,
+            middleware:
+                registerParams.middleware as EBEXJSMiddleware<GenericRecord>,
+            needAwait: registerParams.needAwait,
+        });
+        this.#baseApi.handlers.set(registerParams.event, arr);
     }
 
     /**
