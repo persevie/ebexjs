@@ -12,6 +12,16 @@ export type EBEXJSCommonProperties = {
 export type GenericRecord = Record<string, unknown>;
 
 /**
+ * Unique identifier for an event handler.
+ */
+export type EBEXJSHandlerId = symbol;
+
+/**
+ * Function signature used to unsubscribe listeners or middleware.
+ */
+export type EBEXJSUnsubscribe = () => void;
+
+/**
  * Parameters used to register an event listener.
  * @param event - The name of the event to register.
  * @param callback - The function to be called when the event occurs.
@@ -33,13 +43,15 @@ export interface EBEXJSApi {
      * Registers an event listener.
      * @param registerParams - Parameters used to register an event listener.
      */
-    on<T extends object>(registerParams: EBEXJSRegisterParams<T>): void;
+    on<T extends object>(
+        registerParams: EBEXJSRegisterParams<T>,
+    ): EBEXJSUnsubscribe;
 
     /**
      * Unregisters an event.
      * @param event - The name of the event or an array of names.
      */
-    off(event: string): void;
+    off(event: string, callback?: EBEXJSEventCallback<GenericRecord>): void;
 
     /**
      * Emits an event.
@@ -48,20 +60,37 @@ export interface EBEXJSApi {
      */
     emit<T extends object>(
         event: string,
-        data: EBEXJSCallbackParams<T>,
+        data?: EBEXJSCallbackParams<T>,
     ): Promise<void>;
 
     /**
      * Registers a callback for an event, then unregisters it after the first execution.
      * @param registerParams - Parameters for registering the callback.
      */
-    once<T extends object>(registerParams: EBEXJSRegisterParams<T>): void;
+    once<T extends object>(
+        registerParams: EBEXJSRegisterParams<T>,
+    ): EBEXJSUnsubscribe;
 
     /**
      * Adds a middleware.
      * @param middleware - Middleware to add.
      */
-    use<T extends object>(middleware: EBEXJSMiddleware<T>): void;
+    use<T extends object>(middleware: EBEXJSMiddleware<T>): EBEXJSUnsubscribe;
+
+    /**
+     * Returns the number of registered listeners. When event is omitted, counts all listeners.
+     */
+    listenerCount(event?: string): number;
+
+    /**
+     * Checks whether listeners exist for the provided event (or any event).
+     */
+    hasListeners(event?: string): boolean;
+
+    /**
+     * Clears all listeners and queued events.
+     */
+    clear(): void;
 }
 
 /**
@@ -87,11 +116,11 @@ export type EBEXJSMiddlewareCallback<T extends object> = (
 /**
  * Properties for an event handler.
  */
-export type EBEXJSEventHandler<T extends object> = Omit<
-    EBEXJSRegisterParams<T>,
-    "event" | "callback"
-> & {
+export type EBEXJSEventHandler<T extends object> = EBEXJSCommonProperties & {
+    id: EBEXJSHandlerId;
+    originalCallback: EBEXJSEventCallback<T>;
     callback: EBEXJSInternalEventCallback;
+    middleware?: EBEXJSMiddleware<T>;
 };
 
 /**
@@ -132,4 +161,5 @@ export interface EBEXJSEventQueueItem<T extends object>
     event: string;
     data: EBEXJSCallbackParams<T>;
     callback: EBEXJSInternalEventCallback;
+    handlerId: EBEXJSHandlerId;
 }

@@ -8,4 +8,6 @@ export type {
     EBEXJSCallbackParams,
     EBEXJSEventCallback,
     EBEXJSApi,
+    EBEXJSHandlerId,
+    EBEXJSUnsubscribe,
 } from "./entities";

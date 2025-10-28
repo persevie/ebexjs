@@ -34,14 +34,15 @@ ebexjs.emit<Event1CbData>(EventKind.EVENT_1, { name: "world" });
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
--   [Introduction](#introduction)
--   [API](#api)
--   [**Event Prioritization**](#event-prioritization) - [**Middleware Support**](#middleware-support)
--   [**Async/Await Support**](#asyncawait-support)
--   [When to use EBEXJS?](#when-to-use-ebexjs)
--   [Usage](#usage)
--   [Example: ToDo App](#example-todo-app)
--   [For contributors](#for-contributors)
+- [Introduction](#introduction)
+- [API](#api)
+- [Event Prioritization](#event-prioritization)
+  - [Middleware Support](#middleware-support)
+- [Async/Await Support](#asyncawait-support)
+- [When to use EBEXJS?](#when-to-use-ebexjs)
+- [Usage](#usage)
+- [Example: ToDo App](#example-todo-app)
+- [For contributors](#for-contributors)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -51,13 +52,14 @@ EBEXJS (**E**vent **B**us **Ex**ecutor) is a tiny, high-performance, flexible ev
 
 **Key features**:
 
--   Priority-based Event Queue: EBEXJS includes a priority-based event queue. It ensures that events are processed based on their priority, with higher priority events processed before lower priority ones.
--   High performance: EBEXJS is designed with performance in mind. It uses a priority queue based binary heap data structure for event management, ensuring high-performance event processing and prioritization.
--   Concurrent and Sequential Processing: Events can be set to wait for previous events to complete (`needAwait` property) or to be processed concurrently, offering flexibility in event handling based on use-case requirements.
--   Clear API: EBEXJS has a clear and easy-to-use API.
--   TypeScript support: EBEXJS's code is written in TypeScript, providing type safety and clear type definitions for developers.
--   Middleware Integration: EBEXJS supports middleware execution at different stages of event processing - before, during, and after an event. This offers high flexibility in event management and customization.
--   Small size: EBEXJS has a tiny size of only less than 5KB, making it easy to include in your project without being too big.
+- Priority-based Event Queue: EBEXJS includes a priority-based event queue. It ensures that events are processed based on their priority, with higher priority events processed before lower priority ones.
+- High performance: EBEXJS is designed with performance in mind. It uses a priority queue based binary heap data structure for event management, ensuring high-performance event processing and prioritization.
+- Concurrent and Sequential Processing: Events can be set to wait for previous events to complete (`needAwait` property) or to be processed concurrently, offering flexibility in event handling based on use-case requirements.
+- Clear API: EBEXJS has a clear and easy-to-use API.
+- TypeScript support: EBEXJS's code is written in TypeScript, providing type safety and clear type definitions for developers.
+- Middleware Integration: EBEXJS supports middleware execution at different stages of event processing - before, during, and after an event. This offers high flexibility in event management and customization.
+- Small size: EBEXJS has a tiny size of only less than 5KB, making it easy to include in your project without being too big.
+- Safety tooling: Input validation, listener diagnostics, and queue flushing APIs help keep long-running apps healthy without extra plumbing.
 
 # API
 
@@ -66,13 +68,15 @@ EBEXJS (**E**vent **B**us **Ex**ecutor) is a tiny, high-performance, flexible ev
  * Registers an event listener.
  * @param registerParams - Parameters used to register an event listener.
  */
-on<T extends object>(registerParams: EBEXJSRegisterParams<T>): void;
+on<T extends object>(
+    registerParams: EBEXJSRegisterParams<T>,
+): EBEXJSUnsubscribe;
 
 /**
  * Unregisters an event.
  * @param event - The name of the event or an array of names.
  */
-off(event: string): void;
+off(event: string, callback?: EBEXJSEventCallback<GenericRecord>): void;
 
 /**
  * Emits an event.
@@ -81,23 +85,40 @@ off(event: string): void;
  */
 emit<T extends object>(
     event: string,
-    data: EBEXJSCallbackParams<T>,
+    data?: EBEXJSCallbackParams<T>,
 ): Promise<void>;
 
 /**
  * Registers a callback for an event, then unregisters it after the first execution.
  * @param registerParams - Parameters for registering the callback.
  */
-once<T extends object>(registerParams: EBEXJSRegisterParams<T>): void;
+once<T extends object>(
+    registerParams: EBEXJSRegisterParams<T>,
+): EBEXJSUnsubscribe;
 
 /**
  * Adds a middleware.
  * @param middleware - Middleware to add.
  */
-use<T extends object>(middleware: EBEXJSMiddleware<T>): void;
+use<T extends object>(middleware: EBEXJSMiddleware<T>): EBEXJSUnsubscribe;
+
+/**
+ * Returns the number of listeners for the given event (or all events when omitted).
+ */
+listenerCount(event?: string): number;
+
+/**
+ * Checks whether listeners exist for the given event (or any event when omitted).
+ */
+hasListeners(event?: string): boolean;
+
+/**
+ * Removes every listener and clears the internal queue.
+ */
+clear(): void;
 ```
 
-# **Event Prioritization**
+# Event Prioritization
 
 EBEXJS provides a mechanism for prioritizing event processing. Each event listener can be registered with a priority value. The event queue uses a priority queue internally to ensure higher priority events are processed first.
 
@@ -247,12 +268,12 @@ ebexjs.emit(EBEXEvents.MAIN, {});
 // ---
 ```
 
-#### **Middleware Support**
+## Middleware Support
 
 There is 2 types of middleware:
 
--   Global Middleware: With the `use` method, global middlewares can be set that run for every event. This is ideal for functionalities like logging or analytics that need to be executed for multiple events.
--   Event-specific Middleware: In addition to global middlewares, specific middleware can be associated with individual events, providing fine-grained control over event processing.
+- Global Middleware: With the `use` method, global middlewares can be set that run for every event. This is ideal for functionalities like logging or analytics that need to be executed for multiple events.
+- Event-specific Middleware: In addition to global middlewares, specific middleware can be associated with individual events, providing fine-grained control over event processing.
 
 Both types hase the same interface:
 
@@ -305,7 +326,7 @@ type EBEXJSCommonProperties = {
 };
 ```
 
-# **Async/Await Support**
+# Async/Await Support
 
 EBEXJS supports asynchronous operations, allowing you to decide if an event needs to wait for previous events to be completed before it's processed even if your callback is synchronous. It's useful in scenarios where the order of event processing matters.
 
@@ -332,7 +353,7 @@ Moreover, it's great for applications that require prioritized event handling an
 2. **Registering Event Handlers**
 
     ```typescript
-    ebexjs.on({
+    const unsubscribe = ebexjs.on({
         event: "eventName",
         callback: (data) => {
             console.log("Event occurred with data:", data);
@@ -340,6 +361,12 @@ Moreover, it's great for applications that require prioritized event handling an
         needAwait: false,
         priority: 1,
     });
+    ```
+
+    The returned function can be used to unsubscribe without remembering the original callback:
+
+    ```typescript
+    unsubscribe();
     ```
 
 3. **Emitting Events**
@@ -351,11 +378,14 @@ Moreover, it's great for applications that require prioritized event handling an
 4. **Unregistering Event Handlers**
 
     ```typescript
+    // Remove every listener for the event
     ebexjs.off("eventName");
+
+    // Remove only the specified handler
+    ebexjs.off("eventName", callback);
     ```
 
 5. **Using Middleware**
-
     - **Global Middleware** (applies to all events)
 
         ```typescript
@@ -384,120 +414,281 @@ Moreover, it's great for applications that require prioritized event handling an
         });
         ```
 
+6. **Introspection & Maintenance**
+
+    ```typescript
+    ebexjs.listenerCount(); // total listeners across all events
+    ebexjs.listenerCount("eventName"); // listeners for a specific event
+    ebexjs.hasListeners(); // any listeners?
+    ebexjs.clear(); // drop all listeners and pending queue work
+    ```
+
 # Example: ToDo App
 
-First, let's define an example application to showcase EBEXJS's features. We'll use a simple ToDo app:
+A complete event-driven todo application demonstrating EBEXJS features is available: [**examples/todoapp.html**](examples/todoapp.html)
 
-1. **Types & Enum Definitions**
+```html
+<main class="app">
+    <h1>Tasks</h1>
+    <form id="todo-form" autocomplete="off">
+        <input
+            id="todo-input"
+            type="text"
+            placeholder="What needs to be done?"
+            aria-label="Add a new todo"
+        />
+        <button type="submit">Add</button>
+    </form>
 
-    ```typescript
-    enum EBEXEvents {
-        ADD_TODO = "ADD_TODO",
-        REMOVE_TODO = "REMOVE_TODO",
-        TOGGLE_TODO = "TOGGLE_TODO",
-    }
+    <section class="toolbar">
+        <div class="filters" role="group" aria-label="Todo filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="active">Active</button>
+            <button class="filter-btn" data-filter="completed">
+                Completed
+            </button>
+        </div>
+        <div class="summary" id="summary">0 items · 0 completed</div>
+        <button id="clear-completed" class="ghost-btn" type="button">
+            Clear completed
+        </button>
+    </section>
 
-    type TodoItem = {
-        id: number;
-        title: string;
-        done: boolean;
+    <ul id="todo-list" aria-live="polite"></ul>
+    <div class="empty-state" id="empty-state">No tasks yet.</div>
+</main>
+
+<script type="module">
+    import { EBEXJS } from "../packages/ebexjs.mjs";
+
+    const bus = new EBEXJS();
+
+    const Events = Object.freeze({
+        ADD_TODO: "ADD_TODO",
+        TOGGLE_TODO: "TOGGLE_TODO",
+        DELETE_TODO: "DELETE_TODO",
+        CLEAR_COMPLETED: "CLEAR_COMPLETED",
+        FILTER_CHANGED: "FILTER_CHANGED",
+        STATE_UPDATED: "STATE_UPDATED",
+    });
+
+    const store = {
+        todos: [],
+        filter: "all",
+        nextId: 1,
     };
-    ```
 
-2. **HTML Structure**
+    const summaryEl = document.querySelector("#summary");
+    const form = document.querySelector("#todo-form");
+    const input = document.querySelector("#todo-input");
+    const todoList = document.querySelector("#todo-list");
+    const emptyStateEl = document.querySelector("#empty-state");
+    const clearCompletedBtn = document.querySelector("#clear-completed");
+    const filterButtons = Array.from(
+        document.querySelectorAll(".filter-btn[data-filter]"),
+    );
 
-    ```html
-    <div id="app">
-        <input type="text" id="todoInput" placeholder="Add a new todo" />
-        <button id="addTodoBtn">Add</button>
-        <ul id="todoList"></ul>
-    </div>
-    <script src="./build.js"></script>
-    ```
+    const createSnapshot = () => ({
+        todos: store.todos.map((todo) => ({ ...todo })),
+        filter: store.filter,
+        total: store.todos.length,
+        completed: store.todos.filter((todo) => todo.completed).length,
+    });
 
-3. **App Logic (TypeScript)**
+    const broadcastState = async () => {
+        await bus.emit(Events.STATE_UPDATED, createSnapshot());
+    };
 
-    ```typescript
-    const { EBEXJS } from "@persevie/ebexjs";
+    const withGuard = (handler) => async (payload) => {
+        try {
+            await handler(payload ?? {});
+        } catch (error) {
+            console.error("TodoApp handler error", error);
+        }
+    };
 
-    const ebexjs = new EBEXJS();
+    bus.on({
+        event: Events.ADD_TODO,
+        priority: 100,
+        needAwait: true,
+        callback: withGuard(async ({ text }) => {
+            const normalized = (text ?? "").trim();
+            if (normalized.length === 0) {
+                return;
+            }
+            store.todos.push({
+                id: store.nextId++,
+                text: normalized,
+                completed: false,
+                createdAt: Date.now(),
+            });
+            await broadcastState();
+        }),
+    });
 
-    let todoList: TodoItem[] = [];
-    let lastId = 0;
+    bus.on({
+        event: Events.TOGGLE_TODO,
+        priority: 100,
+        needAwait: true,
+        callback: withGuard(async ({ id }) => {
+            const todo = store.todos.find((item) => item.id === Number(id));
+            if (!todo) {
+                return;
+            }
+            todo.completed = !todo.completed;
+            await broadcastState();
+        }),
+    });
 
-    // Event handlers
-    ebexjs.on<TodoItem>({
-        event: EBEXEvents.ADD_TODO,
-        callback: (data) => {
-            data.id = ++lastId;
-            todoList.push(data);
-            renderTodos();
-        },
+    bus.on({
+        event: Events.DELETE_TODO,
+        priority: 100,
+        needAwait: true,
+        callback: withGuard(async ({ id }) => {
+            const numericId = Number(id);
+            store.todos = store.todos.filter((todo) => todo.id !== numericId);
+            await broadcastState();
+        }),
+    });
+
+    bus.on({
+        event: Events.CLEAR_COMPLETED,
+        priority: 100,
+        needAwait: true,
+        callback: withGuard(async () => {
+            store.todos = store.todos.filter((todo) => !todo.completed);
+            await broadcastState();
+        }),
+    });
+
+    bus.on({
+        event: Events.FILTER_CHANGED,
+        priority: 100,
+        needAwait: true,
+        callback: withGuard(async ({ filter }) => {
+            if (!filter) {
+                return;
+            }
+            store.filter = filter;
+            await broadcastState();
+        }),
+    });
+
+    bus.on({
+        event: Events.STATE_UPDATED,
+        priority: 10,
         needAwait: false,
-        priority: 1,
-    });
+        callback: ({ todos, filter, total, completed }) => {
+            const filters = {
+                all: () => true,
+                active: (todo) => !todo.completed,
+                completed: (todo) => todo.completed,
+            };
+            const applyFilter = filters[filter] ?? filters.all;
+            const visibleTodos = todos.filter(applyFilter);
 
-    ebexjs.on<number>({
-        event: EBEXEvents.REMOVE_TODO,
-        callback: (data) => {
-            todoList = todoList.filter((todo) => todo.id !== data);
-            renderTodos();
+            todoList.innerHTML = "";
+            if (visibleTodos.length === 0) {
+                emptyStateEl.hidden = false;
+            } else {
+                emptyStateEl.hidden = true;
+                const fragment = document.createDocumentFragment();
+                for (const todo of visibleTodos) {
+                    const item = document.createElement("li");
+                    item.classList.toggle("completed", todo.completed);
+                    const checkbox = document.createElement("input");
+                    checkbox.type = "checkbox";
+                    checkbox.checked = todo.completed;
+                    checkbox.dataset.id = String(todo.id);
+                    checkbox.setAttribute("aria-label", `Toggle ${todo.text}`);
+
+                    const text = document.createElement("span");
+                    text.className = "todo-text";
+                    text.textContent = todo.text;
+
+                    const removeBtn = document.createElement("button");
+                    removeBtn.type = "button";
+                    removeBtn.textContent = "Remove";
+                    removeBtn.dataset.id = String(todo.id);
+                    removeBtn.className = "filter-btn";
+
+                    item.append(checkbox, text, removeBtn);
+                    fragment.append(item);
+                }
+                todoList.append(fragment);
+            }
+
+            summaryEl.textContent = `${total} item${
+                total === 1 ? "" : "s"
+            } · ${completed} completed`;
+
+            for (const button of filterButtons) {
+                const isActive = button.dataset.filter === filter;
+                button.classList.toggle("active", isActive);
+                button.setAttribute(
+                    "aria-pressed",
+                    isActive ? "true" : "false",
+                );
+            }
+
+            clearCompletedBtn.disabled = completed === 0;
         },
-        needAwait: false,
-        priority: 1,
     });
 
-    ebexjs.on<number>({
-        event: EBEXEvents.TOGGLE_TODO,
-        callback: (data) => {
-            const todo = todoList.find((todo) => todo.id === data);
-            if (todo) todo.done = !todo.done;
-            renderTodos();
-        },
-        needAwait: false,
-        priority: 1,
-    });
-
-    // Middleware
-    ebexjs.use({
-        before: ({ event }) => {
-            console.log(`About to process event: ${event}`);
+    bus.use({
+        processing: ({ event }) => {
+            if (event === Events.STATE_UPDATED) {
+                return;
+            }
+            console.info(`[bus] processing ${event}`);
         },
     });
 
-    // App Logic
-    document.getElementById("addTodoBtn")!.addEventListener("click", () => {
-        const inputElem = document.getElementById(
-            "todoInput",
-        ) as HTMLInputElement;
-        const title = inputElem.value.trim();
-        if (title) {
-            ebexjs.emit(EBEXEvents.ADD_TODO, { id: 0, title, done: false });
-            inputElem.value = "";
+    form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const text = input.value;
+        input.value = "";
+        void bus.emit(Events.ADD_TODO, { text });
+    });
+
+    input.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+            input.value = "";
         }
     });
 
-    function renderTodos() {
-        const listElem = document.getElementById(
-            "todoList",
-        ) as HTMLUListElement;
-        listElem.innerHTML = "";
-        todoList.forEach((todo) => {
-            const li = document.createElement("li");
-            li.textContent = `${todo.done ? "✅" : "❌"} ${todo.title}`;
-            li.addEventListener("click", () => {
-                ebexjs.emit(EBEXEvents.TOGGLE_TODO, todo.id);
-            });
-            li.addEventListener("contextmenu", (e) => {
-                e.preventDefault();
-                ebexjs.emit(EBEXEvents.REMOVE_TODO, todo.id);
-            });
-            listElem.appendChild(li);
+    todoList.addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-id]");
+        if (!button) {
+            return;
+        }
+        const { id } = button.dataset;
+        void bus.emit(Events.DELETE_TODO, { id });
+    });
+
+    todoList.addEventListener("change", (event) => {
+        const checkbox = event.target.closest("input[type='checkbox']");
+        if (!checkbox) {
+            return;
+        }
+        const { id } = checkbox.dataset;
+        void bus.emit(Events.TOGGLE_TODO, { id });
+    });
+
+    clearCompletedBtn.addEventListener("click", () => {
+        void bus.emit(Events.CLEAR_COMPLETED);
+    });
+
+    for (const button of filterButtons) {
+        button.addEventListener("click", () => {
+            const { filter } = button.dataset;
+            void bus.emit(Events.FILTER_CHANGED, { filter });
         });
     }
-    ```
 
-With the above structure and code, you have a basic ToDo app that leverages EBEXJS for event handling.
+    void bus.emit(Events.STATE_UPDATED, createSnapshot());
+</script>
+```
 
 ---
 

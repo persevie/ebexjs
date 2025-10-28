@@ -21,6 +21,7 @@ describe("EBEXJSQueue", () => {
             priority: 5,
             needAwait: false,
             data: {},
+            handlerId: Symbol("test"),
         });
         expect(queue.length).toBe(1);
     });
@@ -32,6 +33,7 @@ describe("EBEXJSQueue", () => {
             priority: 5,
             needAwait: false,
             data: {},
+            handlerId: Symbol("test1"),
         });
         queue.push({
             event: "test2",
@@ -39,6 +41,7 @@ describe("EBEXJSQueue", () => {
             priority: 10,
             needAwait: false,
             data: {},
+            handlerId: Symbol("test2"),
         });
         expect(queue.pop()?.event).toBe("test2");
     });
@@ -50,6 +53,7 @@ describe("EBEXJSQueue", () => {
             priority: 5,
             needAwait: false,
             data: {},
+            handlerId: Symbol("test1"),
         });
         queue.push({
             event: "test2",
@@ -57,6 +61,7 @@ describe("EBEXJSQueue", () => {
             priority: 10,
             needAwait: false,
             data: {},
+            handlerId: Symbol("test2"),
         });
         queue.push({
             event: "test3",
@@ -64,6 +69,7 @@ describe("EBEXJSQueue", () => {
             priority: 1,
             needAwait: false,
             data: {},
+            handlerId: Symbol("test3"),
         });
         expect(queue.pop()?.event).toBe("test2");
         expect(queue.pop()?.event).toBe("test1");
@@ -77,6 +83,7 @@ describe("EBEXJSQueue", () => {
             needAwait: false,
             callback: async () => {},
             data: {},
+            handlerId: Symbol("e1"),
         });
         queue.push({
             event: "e2",
@@ -84,6 +91,7 @@ describe("EBEXJSQueue", () => {
             needAwait: false,
             callback: async () => {},
             data: {},
+            handlerId: Symbol("e2"),
         });
 
         expect(queue.pop()?.event).toBe("e1");
@@ -97,6 +105,7 @@ describe("EBEXJSQueue", () => {
             needAwait: false,
             callback: async () => {},
             data: {},
+            handlerId: Symbol("parent"),
         });
         queue.push({
             event: "child1",
@@ -104,6 +113,7 @@ describe("EBEXJSQueue", () => {
             needAwait: false,
             callback: async () => {},
             data: {},
+            handlerId: Symbol("child1"),
         });
         queue.push({
             event: "child2",
@@ -111,6 +121,7 @@ describe("EBEXJSQueue", () => {
             needAwait: false,
             callback: async () => {},
             data: {},
+            handlerId: Symbol("child2"),
         });
 
         expect(queue.pop()?.event).toBe("parent");
@@ -131,6 +142,7 @@ describe("EBEXJSQueue", () => {
             callback: async (_) => {},
             needAwait: false,
             priority: 5,
+            handlerId: Symbol("testEvent"),
         };
         queue.push(event);
         expect(queue.pop()).toEqual(event);
@@ -146,6 +158,7 @@ describe("EBEXJSQueue", () => {
             callback: async (_) => {},
             needAwait: false,
             priority: 10,
+            handlerId: Symbol("testEvent1"),
         };
 
         const event2: EBEXJSEventQueueItem<GenericRecord> = {
@@ -154,6 +167,7 @@ describe("EBEXJSQueue", () => {
             callback: async (_) => {},
             needAwait: false,
             priority: 5,
+            handlerId: Symbol("testEvent2"),
         };
 
         const event3: EBEXJSEventQueueItem<GenericRecord> = {
@@ -162,6 +176,7 @@ describe("EBEXJSQueue", () => {
             callback: async (_) => {},
             needAwait: false,
             priority: 8,
+            handlerId: Symbol("testEvent3"),
         };
 
         queue.push(event1);
@@ -184,6 +199,7 @@ describe("EBEXJSQueue", () => {
             callback: async (_) => {},
             needAwait: false,
             priority: 10,
+            handlerId: Symbol("testEvent1"),
         };
 
         const event2: EBEXJSEventQueueItem<GenericRecord> = {
@@ -192,6 +208,7 @@ describe("EBEXJSQueue", () => {
             callback: async (_) => {},
             needAwait: false,
             priority: 5,
+            handlerId: Symbol("testEvent2"),
         };
 
         queue.push(event1);
@@ -215,6 +232,7 @@ describe("EBEXJSQueue", () => {
             callback: async (_) => {},
             needAwait: false,
             priority: 100,
+            handlerId: Symbol("highestPriorityEvent"),
         };
 
         const highPriorityEvent: EBEXJSEventQueueItem<GenericRecord> = {
@@ -223,6 +241,7 @@ describe("EBEXJSQueue", () => {
             callback: async (_) => {},
             needAwait: false,
             priority: 10,
+            handlerId: Symbol("highPriorityEvent"),
         };
 
         const midPriorityEvent: EBEXJSEventQueueItem<GenericRecord> = {
@@ -231,6 +250,7 @@ describe("EBEXJSQueue", () => {
             callback: async (_) => {},
             needAwait: false,
             priority: 5,
+            handlerId: Symbol("midPriorityEvent"),
         };
 
         const lowPriorityEvent: EBEXJSEventQueueItem<GenericRecord> = {
@@ -239,25 +259,40 @@ describe("EBEXJSQueue", () => {
             callback: async (_) => {},
             needAwait: false,
             priority: 1,
+            handlerId: Symbol("lowPriorityEvent"),
         };
 
-        // Добавляем элементы таким образом, чтобы они образовали желаемую структуру
         queue.push(highestPriorityEvent);
         queue.push(lowPriorityEvent);
         queue.push(midPriorityEvent);
         queue.push(highPriorityEvent);
 
-        // Удалите корневой элемент, который имеет наивысший приоритет
         queue.pop();
-
-        // Теперь, когда следующий на очереди элемент (lowPriorityEvent) стал корнем,
-        // правый потомок (highPriorityEvent) должен иметь более высокий приоритет, чем левый (midPriorityEvent).
         expect(queue.pop()).toEqual(highPriorityEvent);
+    });
+
+    it("should clear all items", () => {
+        const queue = new EBEXJSQueue<GenericRecord>();
+        queue.push({
+            event: "to-clear",
+            data: {},
+            callback: async () => {},
+            needAwait: false,
+            priority: 1,
+            handlerId: Symbol("to-clear"),
+        });
+        expect(queue.length).toBe(1);
+        queue.clear();
+        expect(queue.length).toBe(0);
+        expect(queue.pop()).toBeUndefined();
     });
 });
 
 describe("EBEXJS", () => {
     let ebexjs: EBEXJS;
+    const flush = async (): Promise<void> => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+    };
 
     beforeEach(() => {
         ebexjs = new EBEXJS();
@@ -267,6 +302,7 @@ describe("EBEXJS", () => {
         const callback = jest.fn();
         ebexjs.on({ event: "test", callback, needAwait: false, priority: 5 });
         await ebexjs.emit("test", {});
+        await flush();
         expect(callback).toHaveBeenCalled();
     });
 
@@ -275,6 +311,7 @@ describe("EBEXJS", () => {
         ebexjs.on({ event: "test", callback, needAwait: false, priority: 5 });
         ebexjs.off("test");
         await ebexjs.emit("test", {});
+        await flush();
         expect(callback).not.toHaveBeenCalled();
     });
 
@@ -289,6 +326,7 @@ describe("EBEXJS", () => {
             middleware,
         });
         await ebexjs.emit("test", {});
+        await flush();
         expect(callback).toHaveBeenCalled();
         expect(middleware.before).toHaveBeenCalled();
     });
@@ -299,6 +337,7 @@ describe("EBEXJS", () => {
 
         await ebexjs.emit("test", {});
         await ebexjs.emit("test", {});
+        await flush();
 
         expect(callback).toHaveBeenCalledTimes(1);
     });
@@ -321,46 +360,153 @@ describe("EBEXJS", () => {
         ebexjs.use(middleware);
 
         await ebexjs.emit("test", {});
+        await flush();
 
         expect(middleware.before).toHaveBeenCalledTimes(2);
         expect(middleware.processing).toHaveBeenCalledTimes(2);
         expect(middleware.after).toHaveBeenCalledTimes(2);
     });
 
-    it("should process events in correct order", async () => {
-        const events: number[] = [];
-        type Data = {
-            priority: number;
-        };
-        const callback = (data: Data): void => {
-            events.push(data.priority);
-        };
+    it("should respect handler priority across events", async () => {
+        const events: string[] = [];
 
         ebexjs.on({
-            event: "test0",
-            callback: callback,
-            needAwait: false,
-            priority: 0,
-        });
-        ebexjs.on({
-            event: "test1",
-            callback: callback,
-            needAwait: false,
+            event: "alpha",
+            callback: () => {
+                events.push("alpha-low");
+            },
+            needAwait: true,
             priority: 1,
         });
         ebexjs.on({
-            event: "test2",
-            callback: callback,
-            needAwait: false,
-            priority: 2,
+            event: "alpha",
+            callback: () => {
+                events.push("alpha-high");
+            },
+            needAwait: true,
+            priority: 10,
+        });
+        ebexjs.on({
+            event: "beta",
+            callback: () => {
+                events.push("beta-mid");
+            },
+            needAwait: true,
+            priority: 5,
         });
 
-        ebexjs.emit<Data>("test0", { priority: 0 });
-        ebexjs.emit<Data>("test1", { priority: 1 });
-        ebexjs.emit<Data>("test2", { priority: 2 });
+        await Promise.all([ebexjs.emit("alpha", {}), ebexjs.emit("beta", {})]);
 
-        setTimeout(() => {
-            expect(events).toEqual([0, 2, 1]);
-        }, 200);
+        expect(events).toEqual(["alpha-high", "beta-mid", "alpha-low"]);
+    });
+
+    it("should remove handler by callback", async () => {
+        const callback = jest.fn();
+        ebexjs.on({
+            event: "test",
+            callback,
+            needAwait: true,
+            priority: 1,
+        });
+
+        ebexjs.off("test", callback);
+
+        await ebexjs.emit("test", {});
+        await flush();
+
+        expect(callback).not.toHaveBeenCalled();
+    });
+
+    it("should unregister global middleware via cleanup", async () => {
+        const before = jest.fn();
+        const cleanup = ebexjs.use({ before });
+
+        await ebexjs.emit("test", {});
+        await flush();
+        expect(before).toHaveBeenCalledTimes(0);
+
+        const callback = jest.fn();
+        ebexjs.on({
+            event: "test",
+            callback,
+            needAwait: true,
+            priority: 1,
+        });
+
+        await ebexjs.emit("test", {});
+        await flush();
+        expect(before).toHaveBeenCalledTimes(1);
+
+        cleanup();
+
+        await ebexjs.emit("test", {});
+        await flush();
+        expect(before).toHaveBeenCalledTimes(1);
+    });
+
+    it("should report listener count and presence", () => {
+        expect(ebexjs.hasListeners()).toBe(false);
+        expect(ebexjs.listenerCount()).toBe(0);
+
+        const unsubscribe = ebexjs.on({
+            event: "listeners",
+            callback: () => undefined,
+            needAwait: false,
+            priority: 1,
+        });
+
+        expect(ebexjs.hasListeners()).toBe(true);
+        expect(ebexjs.listenerCount("listeners")).toBe(1);
+
+        unsubscribe();
+
+        expect(ebexjs.hasListeners("listeners")).toBe(false);
+        expect(ebexjs.listenerCount()).toBe(0);
+    });
+
+    it("should clear all listeners and queued events", async () => {
+        const callback = jest.fn();
+
+        ebexjs.on({
+            event: "clearable",
+            callback,
+            needAwait: false,
+            priority: 1,
+        });
+
+        ebexjs.clear();
+
+        expect(ebexjs.listenerCount()).toBe(0);
+
+        await ebexjs.emit("clearable", {});
+        await flush();
+
+        expect(callback).not.toHaveBeenCalled();
+    });
+
+    it("should trim event names", async () => {
+        const callback = jest.fn();
+        ebexjs.on({
+            event: "   spaced   ",
+            callback,
+            needAwait: true,
+            priority: 1,
+        });
+
+        await ebexjs.emit("spaced", {});
+        await flush();
+
+        expect(callback).toHaveBeenCalledTimes(1);
+    });
+
+    it("should reject empty event names", () => {
+        expect(() => {
+            ebexjs.on({
+                event: "   ",
+                callback: () => undefined,
+                needAwait: false,
+                priority: 0,
+            });
+        }).toThrow("Event name cannot be empty");
     });
 });

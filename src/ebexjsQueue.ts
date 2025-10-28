@@ -44,6 +44,13 @@ export class EBEXJSQueue<T extends object> {
     }
 
     /**
+     * Removes all items from the queue.
+     */
+    clear(): void {
+        this._data.length = 0;
+    }
+
+    /**
      * Reorders the queue to maintain the heap property after an item is added.
      * @private
      */
